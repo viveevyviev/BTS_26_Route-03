@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bentley Tech Summit</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%; height: 100%; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0e0e10; color: #f4f4f5;
+    }
+
+    .app-root { display: flex; width: 100vw; height: 100vh; }
+
+    /* Left Icon Navigation Rail */
+    .left-rail {
+      width: 56px; height: 100%; background: #131316; border-right: 1px solid #27272a;
+      display: flex; flex-direction: column; align-items: center; padding-top: 14px; gap: 16px; z-index: 20;
+    }
+    .rail-btn {
+      width: 38px; height: 38px; border-radius: 8px; border: none; background: transparent;
+      color: #a1a1aa; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .rail-btn.active, .rail-btn:hover { background: #27272a; color: #fff; }
+
+    /* Center Stage Viewport */
+    .center-workspace {
+      flex: 1; height: 100%; display: flex; flex-direction: column;
+      background: #000; position: relative; overflow: hidden;
+    }
+
+    /* Top Navigation Bar */
+    .top-bar {
+      height: 50px; border-bottom: 1px solid #27272a; background: #131316;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 16px; z-index: 10; gap: 12px;
+    }
+    .top-bar-left .title { font-size: 13px; font-weight: 600; color: #f4f4f5; letter-spacing: -0.01em; }
+    
+    .top-bar-center {
+      display: flex; align-items: center; gap: 8px; background: #18181b; padding: 4px 10px;
+      border-radius: 8px; border: 1px solid #27272a;
+    }
+    .top-bar-center select {
+      background: transparent; border: none; color: #e4e4e7; font-size: 12px; cursor: pointer; outline: none;
+    }
+    .top-bar-center select option { background: #18181b; color: #fff; }
+    .divider { width: 1px; height: 16px; background: #3f3f46; }
+
+    .top-bar-right { display: flex; gap: 8px; align-items: center; }
+    .btn {
+      height: 32px; padding: 0 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
+      cursor: pointer; border: 1px solid #3f3f46; background: #18181b; color: #fafafa;
+      display: inline-flex; align-items: center; gap: 6px; transition: background 0.15s;
+    }
+    .btn:hover { background: #27272a; }
+
+    /* Canvas Viewport */
+    .canvas-viewport-wrapper {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      position: relative; overflow: hidden; background: #09090b;
+    }
+    #viewport-container {
+      position: relative; display: flex; align-items: center; justify-content: center;
+      transition: width 0.2s, height 0.2s; box-shadow: 0 25px 60px rgba(0,0,0,0.6); background: #f5f7fa;
+    }
+    #canvas-root { width: 100%; height: 100%; outline: none; }
+
+    /* Right Controls Sidebar */
+    .right-sidebar {
+      width: 360px; height: 100vh; background: #131316; border-left: 1px solid #27272a;
+      display: flex; flex-direction: column; z-index: 20;
+    }
+    .sidebar-header {
+      height: 50px; border-bottom: 1px solid #27272a; display: flex; align-items: center;
+      padding: 0 16px; font-size: 13px; font-weight: 600; flex-shrink: 0; color: #f4f4f5;
+    }
+    .sidebar-content {
+      flex: 1; overflow-y: auto; overflow-x: hidden; padding: 12px;
+      display: flex; flex-direction: column; gap: 10px;
+      scrollbar-width: thin; scrollbar-color: #3f3f46 transparent;
+    }
+    .sidebar-content::-webkit-scrollbar { width: 6px; }
+    .sidebar-content::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+
+    /* Native Independent Accordions */
+    details.ui-panel {
+      border: 1px solid #27272a; border-radius: 8px; background: #18181b;
+      overflow: hidden; transition: border-color 0.2s;
+    }
+    details.ui-panel[open] { border-color: #3b3b40; }
+    details.ui-panel summary {
+      padding: 10px 12px; font-size: 12px; font-weight: 600; color: #e4e4e7;
+      background: #1c1c20; cursor: pointer; user-select: none; list-style: none;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    details.ui-panel summary::-webkit-details-marker { display: none; }
+    details.ui-panel summary::after {
+      content: '▾'; font-size: 11px; color: #a1a1aa; transition: transform 0.2s;
+    }
+    details.ui-panel:not([open]) summary::after { transform: rotate(-90deg); }
+    .panel-body {
+      padding: 12px; display: flex; flex-direction: column; gap: 10px;
+      border-top: 1px solid #27272a;
+    }
+
+    /* Controls Rows with Editable Numeric Value Boxes */
+    .control-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+    .control-row label { color: #a1a1aa; font-size: 11px; font-weight: 500; }
+    
+    .val-input {
+      width: 60px; height: 22px; background: #121214; border: 1px solid #3f3f46;
+      color: #f4f4f5; font-size: 11px; font-weight: 600; text-align: right;
+      padding: 0 4px; border-radius: 4px; outline: none; transition: border-color 0.15s;
+    }
+    .val-input:focus { border-color: #3b82f6; }
+
+    .slider-row { display: flex; align-items: center; gap: 8px; }
+    .slider-row input[type="range"] { flex: 1; accent-color: #3b82f6; cursor: pointer; height: 4px; }
+
+    /* Segmented Controls */
+    .seg-control { display: flex; background: #121214; border-radius: 6px; padding: 2px; border: 1px solid #2e2e33; width: 100%; }
+    .seg-btn {
+      flex: 1; padding: 6px 0; font-size: 11px; font-weight: 500; border: none; background: transparent;
+      color: #a1a1aa; border-radius: 4px; cursor: pointer; text-align: center; transition: all 0.15s;
+    }
+    .seg-btn.active { background: #27272a; color: #fff; font-weight: 600; }
+
+    /* Galleries */
+    .gallery-box { border: 1px solid #27272a; border-radius: 6px; padding: 10px; background: #141416; }
+    .gallery-box-title { font-size: 11px; font-weight: 600; color: #a1a1aa; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .gallery-dropzone {
+      border: 1px dashed #3f3f46; border-radius: 6px; padding: 10px; text-align: center;
+      cursor: pointer; background: #101012; transition: border-color 0.2s;
+    }
+    .gallery-dropzone:hover { border-color: #52525b; }
+    .gallery-dropzone strong { font-size: 11px; color: #e4e4e7; font-weight: 600; }
+    .gallery-dropzone p { font-size: 10px; color: #71717a; margin-top: 2px; }
+    .gallery-thumbs { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+    .gallery-thumb { width: 32px; height: 32px; border-radius: 4px; object-fit: cover; border: 1px solid #3f3f46; }
+
+    /* Video Options */
+    .video-panel summary { color: #f59e0b; }
+    .video-panel .slider-row input[type="range"] { accent-color: #f59e0b; }
+    .btn-gold {
+      width: 100%; height: 34px; background: #78350f; border: 1px solid #d97706; color: #fef3c7;
+      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .btn-gold:hover { background: #92400e; }
+    .btn-loop {
+      width: 100%; height: 36px; background: #1c1917; border: 1px solid #44403c; color: #e7e5e4;
+      border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .btn-loop:hover { background: #292524; color: #fff; }
+    .btn-loop.recording {
+      background: #dc2626 !important; border-color: #ef4444 !important; color: #fff !important;
+      animation: pulse 1s infinite alternate;
+    }
+    @keyframes pulse { from { opacity: 1; } to { opacity: 0.6; } }
+  </style>
+</head>
+<body>
+  <div class="app-root">
+    <div class="left-rail">
+      <button class="rail-btn active" title="3D Stage">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+      </button>
+    </div>
+
+    <div class="center-workspace">
+      <!-- Top Navigation Bar -->
+      <div class="top-bar">
+        <div class="top-bar-left">
+          <div class="title">Spatial Carousel Studio</div>
+        </div>
+
+        <div class="top-bar-center">
+          <label style="font-size: 11px; color: #71717a;">Ratio:</label>
+          <select id="sel-aspect">
+            <option value="16-9" selected>16 : 9 (Landscape)</option>
+            <option value="custom">Fill Freeform</option>
+            <option value="1-1">1 : 1 (Square)</option>
+            <option value="4-5">4 : 5 (Portrait)</option>
+            <option value="9-16">9 : 16 (Vertical)</option>
+          </select>
+          <div class="divider"></div>
+          <label style="font-size: 11px; color: #71717a;">Zoom:</label>
+          <select id="sel-zoom">
+            <option value="1" selected>100%</option>
+            <option value="0.85">85%</option>
+            <option value="0.7">70%</option>
+            <option value="0.5">50%</option>
+          </select>
+          <div class="divider"></div>
+          <button class="btn" style="border:none; padding: 2px 6px; height: 24px;" id="btn-fullscreen-preview" title="Fullscreen Preview Only">⛶</button>
+        </div>
+
+        <div class="top-bar-right">
+          <button class="btn" id="btn-reset-cam">Reset View</button>
+        </div>
+      </div>
+
+      <!-- Canvas Viewport -->
+      <div class="canvas-viewport-wrapper" id="viewport-wrapper">
+        <div id="viewport-container">
+          <div id="canvas-root"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Controls Sidebar -->
+    <div class="right-sidebar">
+      <div class="sidebar-header">Controls</div>
+      <div class="sidebar-content">
+
+        <!-- 1. ONLY THIS PANEL IS OPEN BY DEFAULT -->
+        <details class="ui-panel" open>
+          <summary>Asset Galleries (Infrastructure → Human → Data)</summary>
+          <div class="panel-body">
+            <div class="gallery-box">
+              <div class="gallery-box-title">
+                <span>1. Inner Wheel (Nearest / Biggest)</span>
+                <span id="count-infra">Default</span>
+              </div>
+              <div class="gallery-dropzone" id="dz-infra">
+                <strong>Drop Infrastructure Images</strong>
+                <p>Inner Loop Cards</p>
+                <input type="file" multiple accept="image/*" style="display:none" id="inp-infra">
+              </div>
+              <div class="gallery-thumbs" id="thumbs-infra"></div>
+            </div>
+
+            <div class="gallery-box">
+              <div class="gallery-box-title">
+                <span>2. Middle Wheel (Further 2nd / Mid Scale)</span>
+                <span id="count-human">Default</span>
+              </div>
+              <div class="gallery-dropzone" id="dz-human">
+                <strong>Drop Human Images</strong>
+                <p>Middle Loop Cards</p>
+                <input type="file" multiple accept="image/*" style="display:none" id="inp-human">
+              </div>
+              <div class="gallery-thumbs" id="thumbs-human"></div>
+            </div>
+
+            <div class="gallery-box">
+              <div class="gallery-box-title">
+                <span>3. Outer Wheel (Furthest / Smallest)</span>
+                <span id="count-data">Default</span>
+              </div>
+              <div class="gallery-dropzone" id="dz-data">
+                <strong>Drop Data Images</strong>
+                <p>Outer Loop Cards</p>
+                <input type="file" multiple accept="image/*" style="display:none" id="inp-data">
+              </div>
+              <div class="gallery-thumbs" id="thumbs-data"></div>
+            </div>
+          </div>
+        </details>
+
+        <!-- 2. ALL REMAINING PANELS ARE COLLAPSED BY DEFAULT -->
+        <details class="ui-panel">
+          <summary>Wheel Positions</summary>
+          <div class="panel-body">
+            <div class="control-row">
+              <label>Inner Wheel Lateral X</label>
+              <input type="number" class="val-input" id="num-w0-x" value="18.5" step="0.5">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-w0-x" min="1.0" max="40.0" step="0.5" value="18.5">
+            </div>
+
+            <div class="control-row">
+              <label>Middle Wheel Lateral X</label>
+              <input type="number" class="val-input" id="num-w1-x" value="37.5" step="0.5">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-w1-x" min="5.0" max="60.0" step="0.5" value="37.5">
+            </div>
+
+            <div class="control-row">
+              <label>Outer Wheel Lateral X</label>
+              <input type="number" class="val-input" id="num-w2-x" value="53.5" step="0.5">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-w2-x" min="10.0" max="80.0" step="0.5" value="53.5">
+            </div>
+          </div>
+        </details>
+
+        <!-- 3. Card Spacing & Smooth Gradual Center Focus -->
+        <details class="ui-panel">
+          <summary>Card Spacing & Scaling</summary>
+          <div class="panel-body">
+            <div class="control-row">
+              <label>Ring Height (Vertical Radius)</label>
+              <input type="number" class="val-input" id="num-card-spacing" value="41" step="0.5">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-card-spacing" min="5.0" max="80.0" step="0.5" value="41">
+            </div>
+
+            <div class="control-row">
+              <label>Center Card Focus Boost</label>
+              <input type="number" class="val-input" id="num-center-pop" value="3.94" step="0.05">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-center-pop" min="1.0" max="5.0" step="0.02" value="3.94">
+            </div>
+
+            <div class="control-row">
+              <label>Cards Quantity Per Wheel</label>
+              <input type="number" class="val-input" id="num-cards-count" value="40" step="1">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-cards-count" min="4" max="80" step="1" value="40">
+            </div>
+
+            <div class="control-row">
+              <label>Corner Radius (Roundness)</label>
+              <input type="number" class="val-input" id="num-corner-radius" value="0.49" step="0.01">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-corner-radius" min="0.01" max="1.0" step="0.01" value="0.49">
+            </div>
+          </div>
+        </details>
+
+        <!-- 4. Rear Apex Convergence & Ring Depth -->
+        <details class="ui-panel">
+          <summary>Rear Apex Convergence & Ring Depth</summary>
+          <div class="panel-body">
+            <div class="control-row">
+              <label>Apex Convergence Pinch (6 to 1 Point)</label>
+              <input type="number" class="val-input" id="num-apex-convergence" value="0.6" step="0.05">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-apex-convergence" min="0.0" max="1.0" step="0.02" value="0.6">
+            </div>
+
+            <div class="control-row">
+              <label>Ring Depth Span (Z-Depth)</label>
+              <input type="number" class="val-input" id="num-ring-depth" value="40" step="1.0">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-ring-depth" min="5.0" max="80.0" step="0.5" value="40">
+            </div>
+
+            <div class="control-row">
+              <label>Apex Vertical Height Target</label>
+              <input type="number" class="val-input" id="num-apex-y" value="-10" step="0.5">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-apex-y" min="-30.0" max="20.0" step="0.5" value="-10">
+            </div>
+          </div>
+        </details>
+
+        <!-- 5. Tiered Scales Per Wheel -->
+        <details class="ui-panel">
+          <summary>Tiered Scales Per Wheel</summary>
+          <div class="panel-body">
+            <div class="control-row">
+              <label>Inner Wheel Base Scale</label>
+              <input type="number" class="val-input" id="num-scale-w0" value="0.9" step="0.05">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-scale-w0" min="0.1" max="3.0" step="0.05" value="0.9">
+            </div>
+
+            <div class="control-row">
+              <label>Middle Wheel Base Scale</label>
+              <input type="number" class="val-input" id="num-scale-w1" value="0.55" step="0.05">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-scale-w1" min="0.1" max="2.0" step="0.05" value="0.55">
+            </div>
+
+            <div class="control-row">
+              <label>Outer Wheel Base Scale</label>
+              <input type="number" class="val-input" id="num-scale-w2" value="0.4" step="0.05">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-scale-w2" min="0.05" max="1.5" step="0.05" value="0.4">
+            </div>
+          </div>
+        </details>
+
+        <!-- 6. Motion & Speed Synchronization -->
+        <details class="ui-panel">
+          <summary>Motion & Speed</summary>
+          <div class="panel-body">
+            <div class="control-row">
+              <label>Scroll Direction</label>
+              <div class="seg-control" style="width: 140px;">
+                <button class="seg-btn active" id="dir-down">Scroll Down</button>
+                <button class="seg-btn" id="dir-up">Scroll Up</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label>Playback State</label>
+              <div class="seg-control" style="width: 140px;">
+                <button class="seg-btn" id="btn-anim-pause">Pause</button>
+                <button class="seg-btn active" id="btn-anim-play">Play</button>
+              </div>
+            </div>
+
+            <div class="control-row">
+              <label>Carousel Speed</label>
+              <input type="number" class="val-input" id="num-anim-speed" value="1.0" step="0.1">
+            </div>
+            <div class="slider-row">
+              <input type="range" id="rng-anim-speed" min="0.1" max="5.0" step="0.1" value="1.0">
+            </div>
+
+            <div class="control-row">
+              <label>Wheel Speed Mode</label>
+            </div>
+            <div class="seg-control">
+              <button class="seg-btn active" id="mode-equal">Equal Speed</button>
+              <button class="seg-btn" id="mode-staggered">Staggered Speed</button>
+            </div>
+          </div>
+        </details>
+
+        <!-- 7. Background Mode -->
+        <details class="ui-panel">
+          <summary>Background Mode</summary>
+          <div class="panel-body">
+            <div class="seg-control">
+              <button class="seg-btn" id="bg-none">Transparent</button>
+              <button class="seg-btn active" id="bg-solid">Solid Color</button>
+              <button class="seg-btn" id="bg-image">Custom Image</button>
+            </div>
+            <div id="bg-color-row" class="control-row" style="margin-top: 4px;">
+              <label>Background Color</label>
+              <input type="color" id="bg-color-picker" value="#f5f7fa" style="border:none; width:44px; height:24px; cursor:pointer; background:transparent;">
+            </div>
+          </div>
+        </details>
+
+        <!-- 8. Video Export Options -->
+        <details class="ui-panel video-panel">
+          <summary>Video Export Options</summary>
+          <div class="panel-body">
+            <div class="control-row">
+              <div>
+                <label>Frame Rate (FPS)</label>
+                <div style="margin-top: 4px;">
+                  <select id="sel-video-fps" style="background:#1e1e22; border:1px solid #3f3f46; color:#fff; border-radius:4px; padding:4px 8px; font-size:12px;">
+                    <option value="24">24 FPS</option>
+                    <option value="30" selected>30 FPS</option>
+                    <option value="60">60 FPS</option>
+                  </select>
+                </div>
+              </div>
+              <div style="text-align: right;">
+                <label>Loop Duration</label>
+                <div class="val" id="lbl-video-duration" style="color:#f59e0b; font-weight:600">5s</div>
+              </div>
+            </div>
+
+            <div class="slider-row">
+              <input type="range" id="rng-video-duration" min="2" max="20" step="1" value="5">
+            </div>
+
+            <button class="btn-gold" id="btn-include-audio">Include Source Audio</button>
+            <button class="btn-loop" id="btn-perfect-loop">Export Perfect Loop Video</button>
+          </div>
+        </details>
+
+        <!-- 9. Image Snapshot -->
+        <details class="ui-panel">
+          <summary>Image Export</summary>
+          <div class="panel-body">
+            <div class="seg-control">
+              <button class="seg-btn active" id="fmt-png">PNG (Lossless)</button>
+              <button class="seg-btn" id="fmt-jpeg">JPEG</button>
+            </div>
+            <button class="btn" style="width: 100%; justify-content: center; height: 34px;" id="btn-export-image">Capture Snapshot</button>
+          </div>
+        </details>
+
+      </div>
+    </div>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://esm.sh/three@0.170.0",
+        "three/addons/": "https://esm.sh/three@0.170.0/addons/"
+      }
+    }
+  </script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
