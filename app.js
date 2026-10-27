@@ -60,8 +60,8 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffe
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.12;
+renderer.toneMapping = THREE.LinearToneMapping;
+renderer.toneMappingExposure = 1.3;
 canvasContainer.appendChild(renderer.domElement);
 
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -256,8 +256,6 @@ function rebuildScene() {
 
         const frontMat = new THREE.MeshStandardMaterial({
           color: 0xffffff,
-          roughness: 0.2,
-          metalness: 0.05,
           transparent: true,
           opacity: PARAMS.frontOpacity,
           map: texture
