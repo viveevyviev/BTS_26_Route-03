@@ -73,11 +73,12 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 1.45);
 scene.add(ambientLight);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1.3);
-dirLight.position.set(20, 45, 45);
+dirLight.position.set(0, 0, 10);
 dirLight.castShadow = true;
 dirLight.shadow.mapSize.set(2048, 2048);
 dirLight.shadow.radius = 3;
-scene.add(dirLight);
+camera.add(dirLight);
+scene.add(camera);
 
 // --- Full-Bleed Card Geometry (No Bevel, Zero Border) ---
 function createFullBleedCardGeometry(size, depth, radius, segments = 8) {
